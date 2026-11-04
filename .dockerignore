@@ -1,0 +1,7 @@
+.git
+node_modules
+dist
+companion/web
+**/__pycache__
+.openai
+*.tar.gz

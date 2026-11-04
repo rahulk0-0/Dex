@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: dex-editor-lite
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://dex-editor-lite-rahul.nutmegatlas.chatgpt.site
+      - key: DEX_MAX_HEAP_MB
+        value: "320"
+      - key: DEX_CONCURRENCY
+        value: "1"
+      - key: MAX_REQUEST_MB
+        value: "32"
