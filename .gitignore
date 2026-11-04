@@ -1,0 +1,8 @@
+node_modules/
+dist/
+__pycache__/
+*.tsbuildinfo
+.openai/
+companion/lib/
+companion/web/
+public/*.zip
