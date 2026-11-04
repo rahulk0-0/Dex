@@ -1,12 +1,16 @@
 # Hosted DEX processing for mobile and PC
 
-Status: prepared and locally tested. A hosting account must be connected and a live HTTPS service deployed before mobile DEX conversion is available. The existing static site cannot execute Java.
+Live application: https://dex-editor-lite.onrender.com
+
+Source: https://github.com/rahulk0-0/Dex
+
+The Render Docker service runs genuine DEX assembly/disassembly for mobile and PC. The original static editor at https://dex-editor-lite-rahul.nutmegatlas.chatgpt.site is also configured to use this backend. The static host itself cannot execute Java.
 
 ## Deploy on Render
 
 The repository includes a root Dockerfile and render.yaml. Deploy the repository as a Docker web service. The image builds the React frontend and installs Python, Gunicorn, Flask, Java 17 and the pinned Smali jars. It serves both the editor and DEX endpoints at the same HTTPS origin. No PC companion is needed for that hosted URL.
 
-Use a repository accessible to your Render account. No Render service or URL has been provisioned by these source files alone. The source repository attached to the static site is authenticated separately; connect a Git provider or supply an accessible source repository during deployment.
+Use a repository accessible to your Render account. A live service has been provisioned from this repository; see the URL above. Source files alone do not provision another service. The source repository attached to the static site is authenticated separately; connect a Git provider or supply an accessible source repository during deployment.
 
 The included blueprint requests a free instance; actual availability and limits are controlled by the hosting provider. No paid plan has been selected or purchased. Free hosting may suspend idle services; the first conversion or health check can take longer during startup.
 
@@ -46,4 +50,4 @@ Invalid DEX, invalid Smali, duplicate classes, oversize requests and processing 
 
 `npm ci && npm run build`
 
-Docker image builds require a Docker-capable host. Local tests exercise the shared conversion code and HTTP adapter, not a live Render deployment or physical mobile browser.
+Docker image builds require a Docker-capable host. The shared conversion code and HTTP adapter are covered by nine local tests. Live HTTPS import/edit/export/reimport and an actual browser DEX import, replacement, export and downloaded-file validation were also verified. A physical mobile browser was not separately tested.

@@ -13,3 +13,7 @@ No analytics, application login, database, remote conversion, or user-file persi
 ## Hosted mode for phones and PCs
 
 See backend/README.md. The root Dockerfile and render.yaml package a real Java-backed service plus the editor. The frontend's DEX processing panel supports an HTTPS hosted endpoint or the optional local PC companion. Until an actual endpoint is deployed and configured, mobile DEX conversion is unavailable and reports that explicitly instead of trying localhost. Smali/TXT/XML functionality remains browser-based.
+
+## Live deployment
+
+Open https://dex-editor-lite.onrender.com on mobile or PC. Hosted DEX conversion needs no locally installed Python or Java. Source is published at https://github.com/rahulk0-0/Dex. The original private static editor also points to this backend. The free Render instance can sleep when idle; startup may take longer.
