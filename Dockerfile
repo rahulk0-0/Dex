@@ -20,7 +20,7 @@ COPY companion/licenses companion/licenses
 COPY backend backend
 COPY --from=web /build/dist /app/web
 RUN python backend/package_companion.py
-ENV PYTHONUNBUFFERED=1 DEX_WEB_ROOT=/app/web DEX_MAX_HEAP_MB=320 DEX_CONCURRENCY=1 MAX_REQUEST_MB=32 PORT=10000
+ENV PYTHONUNBUFFERED=1 DEX_WEB_ROOT=/app/web DEX_MAX_HEAP_MB=192 DEX_CONCURRENCY=1 MAX_REQUEST_MB=32 PORT=10000
 USER appuser
 EXPOSE 10000
 CMD ["sh","-c","exec gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 1 --threads 2 --timeout 240 --access-logfile /dev/null --error-logfile - backend.app:app"]

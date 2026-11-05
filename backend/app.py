@@ -9,6 +9,12 @@ ALLOWED={x.strip().rstrip('/') for x in os.environ.get('ALLOWED_ORIGINS','https:
 if os.environ.get('RENDER_EXTERNAL_URL'):ALLOWED.add(os.environ['RENDER_EXTERNAL_URL'].rstrip('/'))
 app=Flask(__name__,static_folder=None)
 app.config['MAX_CONTENT_LENGTH']=int(os.environ.get('MAX_REQUEST_MB','32'))*1024*1024
+from backend.binary import disassemble_binary
+app.add_url_rule('/disassemble-binary','disassemble_binary',disassemble_binary,methods=['POST','OPTIONS'])
+@app.errorhandler(subprocess.TimeoutExpired)
+def binary_timeout(error):return jsonify(error='Disassembly exceeded the processing time limit. Try a smaller DEX or a larger server.'),422
+@app.errorhandler(ValueError)
+def binary_invalid(error):return jsonify(error=str(error)[:16000]),422
 @app.before_request
 def check_origin():
     origin=request.headers.get('Origin','').rstrip('/')
@@ -21,11 +27,11 @@ def headers(response):
         response.headers['Vary']='Origin'
     response.headers['X-Content-Type-Options']='nosniff'
     response.headers['Referrer-Policy']='no-referrer'
-    if request.path in ('/assemble','/disassemble','/health','/dex-config.json'):
+    if request.path in ('/assemble','/disassemble','/disassemble-binary','/health','/dex-config.json'):
         response.headers['Cache-Control']='no-store'
     return response
 @app.route('/health')
-def health():return jsonify(ok=True,toolchain='smali/baksmali 2.5.2',mode='hosted',maxRequestMiB=app.config['MAX_CONTENT_LENGTH']//(1024*1024))
+def health():return jsonify(ok=True,toolchain='smali/baksmali 2.5.2',mode='hosted',binaryImport=True,maxRequestMiB=app.config['MAX_CONTENT_LENGTH']//(1024*1024))
 @app.route('/dex-config.json')
 def config():return jsonify(apiBase='')
 @app.route('/<operation>',methods=['POST','OPTIONS'])

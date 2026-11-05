@@ -16,7 +16,35 @@ export function saveConnection(c:DexConnection){const safe={...c,apiBase:c.mode=
 export async function api(path:string,body?:unknown){
  const connection=await getConnection();if(!connection.apiBase)throw new Error('Hosted DEX processing is not deployed yet. Smali, TXT, XML, and ZIP work now. Open “DEX processing” to connect an HTTPS DEX server. Mobile does not use a local companion.');
  let r:Response;try{r=await fetch(connection.apiBase+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(body?200000:60000),credentials:'omit'});}catch{throw new Error(connection.mode==='hosted'?'The hosted DEX server could not be reached. Check its URL in DEX processing and retry. A sleeping server may take a minute to start.':'The local PC companion could not be reached. Start server.py on this computer, or choose Hosted server in DEX processing. Mobile requires a hosted server.');}
+ if([502,503,504].includes(r.status))throw new Error('The DEX server restarted or exceeded its processing capacity. Your original files are unchanged. Retry one file at a time or use the PC companion for large files.');
  if(r.status===413)throw new Error('The DEX server rejected this request because it exceeds its upload limit. Use a smaller file or a server with a larger limit.');
  let data;try{data=await r.json();}catch{throw new Error(`The DEX server returned an unexpected response (HTTP ${r.status}). Check the server URL and health endpoint.`);}
  if(!r.ok)throw new Error(data.error||`DEX processing failed (HTTP ${r.status})`);return data;
+}
+
+export async function disassembleFile(file:File,onProgress:(text:string)=>void){
+ const connection=await getConnection();
+ if(connection.mode==='local'){
+  const bytes=new Uint8Array(await file.arrayBuffer());let raw='';for(let i=0;i<bytes.length;i+=32768)raw+=String.fromCharCode(...bytes.subarray(i,i+32768));
+  return api('/disassemble',{data:btoa(raw)});
+ }
+ if(!connection.apiBase)throw new Error('No hosted DEX server is configured. Open DEX processing to select one.');
+ if(file.size>32*1024*1024)throw new Error('This hosted server accepts DEX files up to 32 MiB. Split the app into its individual DEX files.');
+ onProgress(`Disassembling ${file.name} on server…`);
+ let response:Response;
+ try{response=await fetch(connection.apiBase+'/disassemble-binary',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:file,credentials:'omit',signal:AbortSignal.timeout(200000)});}catch{throw new Error('The DEX server could not complete this request. Your original file is unchanged. Retry after the server recovers, or use the PC companion for large files.');}
+ if(!response.ok){
+  let message='';try{message=(await response.json()).error||'';}catch{}
+  if([502,503,504].includes(response.status))throw new Error('The DEX server restarted or ran out of processing capacity. Your original file is unchanged. Retry with one DEX file at a time; large files may need more server memory.');
+  throw new Error(message||`DEX import failed (HTTP ${response.status})`);
+ }
+ onProgress('Downloading compressed classes…');
+ const {default:JSZip}=await import('jszip');const zipped=await JSZip.loadAsync(await response.arrayBuffer());
+ const apiLevel=Number(await zipped.file('_dex_api.txt')?.async('string'))||28;
+ const entries=Object.values(zipped.files).filter(f=>!f.dir&&f.name.endsWith('.smali'));const files:{name:string,text:string}[]=[];
+ for(let i=0;i<entries.length;i++){
+  files.push({name:entries[i].name,text:await entries[i].async('string')});
+  if(i%32===0){onProgress(`Opening class ${i+1} of ${entries.length}…`);await new Promise(resolve=>setTimeout(resolve,0));}
+ }
+ return {files,api:apiLevel};
 }

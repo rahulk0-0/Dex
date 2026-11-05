@@ -33,3 +33,22 @@ class Hosted(unittest.TestCase):
   self.assertEqual(response.status_code,422)
   self.assertEqual(response.headers['Cache-Control'],'no-store')
 if __name__=='__main__':unittest.main()
+
+class BinaryImport(unittest.TestCase):
+ def test_binary_archive_and_errors(self):
+  import base64,io,zipfile
+  client=app.test_client()
+  original=client.post('/assemble',json={'files':[{'name':'Phone.smali','text':sample('Binary','unchanged')}]}).json
+  response=client.post('/disassemble-binary',data=base64.b64decode(original['data']),content_type='application/octet-stream')
+  self.assertEqual(response.status_code,200)
+  self.assertEqual(response.mimetype,'application/zip')
+  self.assertEqual(response.headers['Cache-Control'],'no-store')
+  with zipfile.ZipFile(io.BytesIO(response.data)) as archive:
+   files=[n for n in archive.namelist() if n.endswith('.smali')]
+   self.assertEqual(len(files),1)
+   self.assertIn('unchanged',archive.read(files[0]).decode())
+   self.assertEqual(archive.read('_dex_api.txt'),b'28')
+  response.close()
+  self.assertEqual(client.post('/disassemble-binary',data=b'broken',content_type='application/octet-stream').status_code,422)
+  self.assertEqual(client.post('/disassemble-binary',data='{}',content_type='application/json').status_code,415)
+  self.assertEqual(client.options('/disassemble-binary',headers={'Origin':next(iter(ALLOWED))}).status_code,204)

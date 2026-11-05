@@ -8,7 +8,7 @@ GATE = threading.BoundedSemaphore(int(os.environ.get('DEX_CONCURRENCY','2')))
 ALLOWED = {'https://dex-editor-lite-rahul.nutmegatlas.chatgpt.site'}
 API = {35:23,37:25,38:27,39:28}
 def run(tool, args):
-    result = subprocess.run(['java','-Xmx'+str(int(os.environ.get('DEX_MAX_HEAP_MB','768')))+'m','-cp',str(ROOT/'lib'/'*'),'org.jf.'+tool+'.Main',*args],capture_output=True,text=True,timeout=180)
+    result = subprocess.run(['java','-XX:+UseSerialGC','-Xss256k','-XX:MaxMetaspaceSize=96m','-Xmx'+str(int(os.environ.get('DEX_MAX_HEAP_MB','768')))+'m','-cp',str(ROOT/'lib'/'*'),'org.jf.'+tool+'.Main',*args],capture_output=True,text=True,timeout=180)
     if result.returncode or 'error' in result.stderr.lower() or 'exception' in result.stderr.lower():
         raise ValueError((result.stderr or result.stdout or 'Smali operation failed')[:16000])
     return result
@@ -19,8 +19,8 @@ def validate(data):
     if version not in API:raise ValueError(f'DEX {version:03d} is unsupported by the bundled Smali 2.5.2 toolchain (supported: 035, 037–039).')
     if struct.unpack_from('<I',data,32)[0]!=len(data):raise ValueError('DEX file size does not match its header.')
     if struct.unpack_from('<I',data,36)[0]!=112 or struct.unpack_from('<I',data,40)[0]!=0x12345678:raise ValueError('Unsupported DEX header size or byte order.')
-    if hashlib.sha1(data[32:]).digest()!=data[12:32]:raise ValueError('DEX SHA-1 signature is invalid.')
-    if zlib.adler32(data[12:])&0xffffffff!=struct.unpack_from('<I',data,8)[0]:raise ValueError('DEX checksum is invalid.')
+    if hashlib.sha1(memoryview(data)[32:]).digest()!=data[12:32]:raise ValueError('DEX SHA-1 signature is invalid.')
+    if zlib.adler32(memoryview(data)[12:])&0xffffffff!=struct.unpack_from('<I',data,8)[0]:raise ValueError('DEX checksum is invalid.')
     return API[version]
 
 def disassemble(payload):
